@@ -1,0 +1,27 @@
+# Docker 镜像文件（太大，不适合 git）
+*.tar
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# 日志文件
+api-logger/logs/*.log*
+
+# pip 离线包（构建产物）
+api-logger/wheels/
+api-logger/wheels-linux/
+
+# 环境配置（含密码）
+.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# macOS
+.DS_Store
