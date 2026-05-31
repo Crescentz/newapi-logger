@@ -38,14 +38,16 @@
 Nginx ──► api-logger（在这里抓到令牌！）──► newapi（验证令牌，转发给模型）
               │
               ├─ token_full = sk-abc123def456     ← 完整密钥存库
-              └─ token_name = "张三的令牌 (sk-abc...f456)"  ← 自动查newapi数据库拿名称
+              └─ token_name = "张三的令牌 (sk-abc...f456)"  ← 自动读newapi SQLite拿名称
 ```
 
 **两层追踪**：
 1. `token_full`：完整令牌密钥，直接和 newapi 令牌管理页面对应
-2. `token_name`：自动从 newapi 数据库查出令牌的**人类可读名称**（如"张三的令牌"、"研发部共享"），无需手动对照
+2. `token_name`：自动从 newapi 的 **SQLite 数据库**查出令牌的人类可读名称
 
-> ⚠️ 要启用自动查名称，需在 `.env` 中配置 `NEWAPI_DB_*` 参数指向 newapi 的 MySQL 数据库。不配也能用，只是 `token_name` 显示脱敏密钥而非名称。
+**如何工作**：newapi（`calciumion/new-api`）使用 SQLite 存储数据（`./data/one-api.db`）。api-logger 通过 Docker volume 以只读方式挂载该目录，直接读取 `tokens` 表中的 `key → name` 映射。
+
+> ⚠️ 需在 `.env` 中配置 `NEWAPI_DATA_DIR` 指向 newapi 的 data 目录。不配也能用，`token_name` 显示脱敏密钥。
 
 **记录什么**：
 

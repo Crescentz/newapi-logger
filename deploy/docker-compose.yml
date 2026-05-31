@@ -27,10 +27,8 @@ services:
       - MYSQL_USER=${MYSQL_USER:-root}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD:-}
       - MYSQL_DATABASE=${MYSQL_DATABASE:-newapi_logs}
-      - NEWAPI_DB_HOST=${NEWAPI_DB_HOST:-mysql}
-      - NEWAPI_DB_USER=${NEWAPI_DB_USER:-root}
-      - NEWAPI_DB_PASSWORD=${NEWAPI_DB_PASSWORD:-}
-      - NEWAPI_DB_NAME=${NEWAPI_DB_NAME:-newapi}
+      # newapi 使用 SQLite，挂载其 data 目录读取令牌信息
+      - NEWAPI_SQLITE_PATH=${NEWAPI_SQLITE_PATH:-/newapi-data/one-api.db}
       - TOKEN_NAME_CACHE_TTL=${TOKEN_NAME_CACHE_TTL:-300}
       - LISTEN_HOST=0.0.0.0
       - LISTEN_PORT=8100
@@ -41,7 +39,10 @@ services:
       - HTTP_MAX_CONNECTIONS=${HTTP_MAX_CONNECTIONS:-500}
 
     volumes:
+      # 日志文件
       - ${LOG_HOST_DIR:-./logs}:/app/logs
+      # newapi 的 data 目录（只读），用于读取 SQLite 令牌数据库
+      - ${NEWAPI_DATA_DIR:-/opt/newapi/data}:/newapi-data:ro
 
     networks:
       - ${DOCKER_NETWORK:-newapi-net}
@@ -49,17 +50,18 @@ services:
     logging:
       driver: "json-file"
       options:
-        max-size: "100m"
-        max-file: "3"
+        max-size: "200m"
+        max-file: "5"
 
+    # 资源限制: 内存 32GB / CPU 4核（根据 128GB 服务器调整）
     deploy:
       resources:
         limits:
           cpus: "4"
-          memory: "4G"
+          memory: "32G"
         reservations:
-          cpus: "1"
-          memory: "1G"
+          cpus: "2"
+          memory: "8G"
 
 networks:
   newapi-net:

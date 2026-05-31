@@ -27,13 +27,11 @@ MYSQL_USER = os.getenv("MYSQL_USER", "root")
 MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD", "")
 MYSQL_DATABASE = os.getenv("MYSQL_DATABASE", "newapi_logs")
 
-# ========== newapi 自身数据库（用于查令牌名称，可选）==========
-# newapi 的 MySQL 数据库信息（通常和日志库在同一台 MySQL 上）
-NEWAPI_DB_HOST = os.getenv("NEWAPI_DB_HOST", os.getenv("MYSQL_HOST", "mysql"))
-NEWAPI_DB_PORT = int(os.getenv("NEWAPI_DB_PORT", os.getenv("MYSQL_PORT", "3306")))
-NEWAPI_DB_USER = os.getenv("NEWAPI_DB_USER", os.getenv("MYSQL_USER", "root"))
-NEWAPI_DB_PASSWORD = os.getenv("NEWAPI_DB_PASSWORD", os.getenv("MYSQL_PASSWORD", ""))
-NEWAPI_DB_NAME = os.getenv("NEWAPI_DB_NAME", "newapi")  # newapi 默认库名
+# ========== newapi SQLite 数据库（用于查令牌名称，可选）==========
+# newapi 的 SQLite 数据库路径（在容器内挂载为 /newapi-data/one-api.db）
+# calciumion/new-api 默认路径: /data/one-api.db
+# 宿主机路径通过 docker-compose volumes 挂载
+NEWAPI_SQLITE_PATH = os.getenv("NEWAPI_SQLITE_PATH", "/newapi-data/one-api.db")
 # 令牌名称缓存刷新间隔（秒），0=不启用
 TOKEN_NAME_CACHE_TTL = int(os.getenv("TOKEN_NAME_CACHE_TTL", "300"))
 
