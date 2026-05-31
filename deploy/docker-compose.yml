@@ -18,7 +18,7 @@ services:
     restart: unless-stopped
 
     ports:
-      - "${LISTEN_PORT:-8100}:8100"
+      - "${LISTEN_PORT:-55020}:55020"
 
     environment:
       - NEWAPI_URL=${NEWAPI_URL:-http://newapi:55000}
@@ -31,7 +31,7 @@ services:
       - NEWAPI_SQLITE_PATH=${NEWAPI_SQLITE_PATH:-/newapi-data/one-api.db}
       - TOKEN_NAME_CACHE_TTL=${TOKEN_NAME_CACHE_TTL:-300}
       - LISTEN_HOST=0.0.0.0
-      - LISTEN_PORT=8100
+      - LISTEN_PORT=55020
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - LOG_DIR=/app/logs
       - TOKEN_MASK=${TOKEN_MASK:-false}

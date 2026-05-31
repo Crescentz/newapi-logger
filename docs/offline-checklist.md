@@ -8,8 +8,8 @@
 
 | 服务 | 端口 | 说明 |
 |------|------|------|
-| Nginx (对外) | 80 | API 入口 |
-| api-logger | 8100 | 日志代理（内部） |
+| Nginx (对外) | 55010 | API 入口 |
+| api-logger | 55020 | 日志代理（内部） |
 | newapi | 55000 | API 管理 |
 | vllm 大模型 | 55001-55003 | 多个模型 |
 | bge/rerank | 55006 | 词向量+重排序 |
@@ -40,7 +40,7 @@ cd newapi-logger && cp .env.example .env && vi .env
 ### 4. Nginx upstream
 ```nginx
 upstream newapi_backend {
-    server api-logger:8100 max_fails=3 fail_timeout=30s;
+    server api-logger:55020 max_fails=3 fail_timeout=30s;
     server newapi:55000 backup;
     keepalive 128;
 }
@@ -56,7 +56,7 @@ docker compose up -d
 
 ### 6. 验证
 ```bash
-curl http://localhost:8100/health
+curl http://localhost:55020/health
 # → {"status":"ok","version":"2.0.0"}
 ```
 

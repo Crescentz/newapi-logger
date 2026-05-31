@@ -24,6 +24,6 @@ COPY *.py /app/
 # 创建日志目录
 RUN mkdir -p /app/logs
 
-EXPOSE 8100
+EXPOSE 55020
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8100", "--log-level", "info", "--limit-concurrency", "1000"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "55020", "--log-level", "info", "--limit-concurrency", "1000"]

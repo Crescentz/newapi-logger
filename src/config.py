@@ -3,11 +3,13 @@ newapi-logger 配置文件
 所有配置通过环境变量传入，方便 Docker 部署和离线环境调整
 
 端口参考（根据实际环境修改）：
-  newapi 对外端口      : 55000
-  vllm 大模型          : 55001 / 55002 / 55003
-  bge embedding        : 55006
-  rerank               : 55006
-  通义-Z-imate-turbo   : 54001
+  Nginx 对外            : 55010  (非默认端口)
+  api-logger 代理       : 55020  (非默认端口)
+  newapi 对外           : 55000
+  vllm 大模型            : 55001 / 55002 / 55003
+  bge embedding          : 55006
+  rerank                 : 55006
+  通义-Z-imate-turbo     : 54001
 """
 import os
 
@@ -17,7 +19,7 @@ NEWAPI_HOST = os.getenv("NEWAPI_HOST", "newapi")
 NEWAPI_PORT = os.getenv("NEWAPI_PORT", "55000")
 
 # ========== 本服务监听端口 ==========
-LISTEN_PORT = int(os.getenv("LISTEN_PORT", "8100"))
+LISTEN_PORT = int(os.getenv("LISTEN_PORT", "55020"))
 LISTEN_HOST = os.getenv("LISTEN_HOST", "0.0.0.0")
 
 # ========== MySQL 连接配置 ==========

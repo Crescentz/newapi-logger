@@ -77,7 +77,7 @@ Nginx ──► api-logger（在这里抓到令牌！）──► newapi（验�
                     ▼                         ▼ (日志宕机时)
            ┌──────────────┐           ┌──────────────┐
            │ api-logger   │──────────▶│   newapi     │──▶ 多个 vllm
-           │   (8100)     │  透明转发  │   (55000)    │    (55001-3)
+           │   (55020)    │  透明转发  │   (55000)    │    (55001-3)
            └──────┬───────┘           └──────────────┘    bge (55006)
                   │                                       rerank (55006)
                   │ 异步写入                               通义 (54001)
@@ -91,8 +91,8 @@ Nginx ──► api-logger（在这里抓到令牌！）──► newapi（验�
 
 | 服务 | 容器名 | 内部端口 | 宿主机端口 | 说明 |
 |------|--------|---------|-----------|------|
-| Nginx | nginx | 80 | 80 | 对外入口 |
-| api-logger | api-logger | 8100 | 8100 | 日志代理（内部） |
+| Nginx | nginx | 55010 | 55010 | 对外入口 |
+| api-logger | api-logger | 55020 | 55020 | 日志代理（内部） |
 | newapi | newapi | 55000 | 55000 | API 管理 |
 | vllm-1 | vllm-1 | 8000 | 55001 | 大模型 1 |
 | vllm-2 | vllm-2 | 8000 | 55002 | 大模型 2 |
@@ -227,7 +227,7 @@ http {
 ```nginx
 # ===== upstream：主节点 = 日志代理，备用 = 直连 newapi =====
 upstream newapi_backend {
-    server api-logger:8100 max_fails=3 fail_timeout=30s;
+    server api-logger:55020 max_fails=3 fail_timeout=30s;
     server newapi:55000 backup;
 
     keepalive 128;
@@ -236,7 +236,7 @@ upstream newapi_backend {
 }
 
 server {
-    listen 80;
+    listen 55010;
     server_name _;
 
     client_max_body_size 200m;
@@ -378,7 +378,7 @@ DOCKER_NETWORK=newapi-net
 
 ```bash
 # 日志代理端口（避开所有占用端口）
-LISTEN_PORT=8100
+LISTEN_PORT=55020
 
 # HTTP 连接池（500 并发够用）
 HTTP_MAX_CONNECTIONS=500
@@ -405,7 +405,7 @@ docker compose logs -f
 # === newapi-logger v2.0 starting ===
 # Connection pool initialized: 2 connections
 # Started 3 DB worker threads
-# newapi-logger v2.0 ready on 0.0.0.0:8100
+# newapi-logger v2.0 ready on 0.0.0.0:55020
 ```
 
 ---
@@ -415,7 +415,7 @@ docker compose logs -f
 ### 6.1 健康检查
 
 ```bash
-curl http://localhost:8100/health
+curl http://localhost:55020/health
 ```
 
 正常返回：
@@ -764,7 +764,7 @@ vi .env   # 改 MYSQL_PASSWORD 和 DOCKER_NETWORK
 docker compose up -d
 
 # 5. 验证
-curl http://localhost:8100/health
+curl http://localhost:55020/health
 ```
 
 ### 如果离线环境没有 MySQL
