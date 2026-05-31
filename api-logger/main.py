@@ -34,6 +34,7 @@ from fastapi.responses import StreamingResponse, PlainTextResponse
 
 import config
 import database
+import token_resolver
 
 # ============================
 #  日志系统初始化
@@ -110,6 +111,7 @@ app = FastAPI(title="newapi-logger", version="2.0.0", docs_url=None, redoc_url=N
 @app.on_event("startup")
 async def startup():
     database.start_db_workers()
+    token_resolver.init()
     _console.info("newapi-logger v2.0 ready on %s:%d", config.LISTEN_HOST, config.LISTEN_PORT)
 
 
@@ -163,8 +165,8 @@ def _extract_token(request: Request, mask: bool = None) -> tuple:
     """
     从 Authorization 头提取令牌
     返回 (display_name, full_token)
-    - display_name: 用于展示（脱敏后的短名称）
-    - full_token: 完整令牌（存库用于精确追踪）
+    - display_name: 用于展示的名称（含令牌名称 + 脱敏密钥）
+    - full_token: 完整令牌密钥（存库用于精确追踪）
     """
     if mask is None:
         mask = config.TOKEN_MASK
@@ -182,10 +184,9 @@ def _extract_token(request: Request, mask: bool = None) -> tuple:
     if not full_token:
         return ("unknown", "")
 
-    if mask and len(full_token) > 20:
-        display = full_token[:8] + "..." + full_token[-8:]
-    else:
-        display = full_token[:64]  # 最多显示64字符
+    # 尝试从 newapi 数据库查令牌名称
+    resolved = token_resolver.resolve_or_key(full_token)
+    display = resolved
 
     return (display, full_token)
 

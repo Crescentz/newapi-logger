@@ -27,6 +27,16 @@ MYSQL_USER = os.getenv("MYSQL_USER", "root")
 MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD", "")
 MYSQL_DATABASE = os.getenv("MYSQL_DATABASE", "newapi_logs")
 
+# ========== newapi 自身数据库（用于查令牌名称，可选）==========
+# newapi 的 MySQL 数据库信息（通常和日志库在同一台 MySQL 上）
+NEWAPI_DB_HOST = os.getenv("NEWAPI_DB_HOST", os.getenv("MYSQL_HOST", "mysql"))
+NEWAPI_DB_PORT = int(os.getenv("NEWAPI_DB_PORT", os.getenv("MYSQL_PORT", "3306")))
+NEWAPI_DB_USER = os.getenv("NEWAPI_DB_USER", os.getenv("MYSQL_USER", "root"))
+NEWAPI_DB_PASSWORD = os.getenv("NEWAPI_DB_PASSWORD", os.getenv("MYSQL_PASSWORD", ""))
+NEWAPI_DB_NAME = os.getenv("NEWAPI_DB_NAME", "newapi")  # newapi 默认库名
+# 令牌名称缓存刷新间隔（秒），0=不启用
+TOKEN_NAME_CACHE_TTL = int(os.getenv("TOKEN_NAME_CACHE_TTL", "300"))
+
 # ========== MySQL 连接池配置（高并发优化）==========
 DB_POOL_MIN_SIZE = int(os.getenv("DB_POOL_MIN_SIZE", "2"))
 DB_POOL_MAX_SIZE = int(os.getenv("DB_POOL_MAX_SIZE", "8"))
