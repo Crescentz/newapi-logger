@@ -18,15 +18,18 @@ newapi-logger — 透明日志代理 v2.0
   - 流式响应内存截断保护（10MB上限）
 """
 import asyncio
+import hashlib
 import json
 import logging
 import os
+import re
 import sys
 import time
 import traceback
 from datetime import datetime
 from logging.handlers import RotatingFileHandler
 from typing import Optional
+from urllib.parse import urlparse
 
 import httpx
 from fastapi import FastAPI, Request, Response as FastAPIResponse
@@ -161,16 +164,13 @@ def _is_stream_request(body: bytes) -> bool:
         return False
 
 
-def _extract_token(request: Request, mask: bool = None) -> tuple:
+def _extract_token(request: Request) -> tuple:
     """
     从 Authorization 头提取令牌
     返回 (display_name, full_token)
     - display_name: 用于展示的名称（含令牌名称 + 脱敏密钥）
     - full_token: 完整令牌密钥（存库用于精确追踪）
     """
-    if mask is None:
-        mask = config.TOKEN_MASK
-
     auth = request.headers.get("Authorization", "")
     full_token = ""
 
@@ -189,6 +189,31 @@ def _extract_token(request: Request, mask: bool = None) -> tuple:
     display = resolved
 
     return (display, full_token)
+
+
+def _get_session_id(request: Request, req_body: bytes, token_full: str) -> str:
+    """
+    获取/生成会话 ID，用于关联多轮对话
+
+    优先级:
+    1. 客户端传入的 X-Conversation-ID 头
+    2. 自动生成: token_full + 第一条用户消息的 hash
+    """
+    # 优先使用客户端指定的 conversation ID
+    conv_id = request.headers.get("X-Conversation-ID", "").strip()
+    if conv_id:
+        return conv_id
+
+    # 自动生成: 基于 token + 消息内容的 hash
+    try:
+        body = json.loads(req_body)
+        messages = body.get("messages", [])
+        # 取前几条用户消息的内容做 hash（稳定且不暴露完整内容）
+        user_msgs = [m.get("content", "") for m in messages if m.get("role") == "user"]
+        seed = token_full + "||" + "||".join(user_msgs[:2])
+        return "auto_" + hashlib.md5(seed.encode()).hexdigest()[:12]
+    except Exception:
+        return "auto_" + hashlib.md5(token_full.encode()).hexdigest()[:12]
 
 
 def _extract_model(body: bytes) -> Optional[str]:
@@ -421,11 +446,12 @@ def _log_request(
     usage = _extract_usage(resp_body) if resp_body else {}
     ip = request.client.host if request.client else "unknown"
     ua = request.headers.get("user-agent", "")[:500]
+    session_id = _get_session_id(request, req_body, token_full)
 
     # === 完整日志写文件 ===
     _full_log.debug(
         f"\n{'='*60}\n"
-        f"ID: {request_id or 'N/A'} | Model: {model or 'N/A'} | Token: {token_display}\n"
+        f"ID: {request_id or 'N/A'} | Session: {session_id} | Model: {model or 'N/A'} | Token: {token_display}\n"
         f"Type: {endpoint_type} | Endpoint: /{path} | Status: {status_code} | Stream: {is_stream} | Latency: {latency_ms}ms\n"
         f"IP: {ip}\n"
         f"--- REQUEST ---\n{_safe_truncate(req_body)}\n"
@@ -456,6 +482,7 @@ def _log_request(
         database.enqueue_log({
             "log_type": "chat",
             "request_id": request_id,
+            "session_id": session_id,
             "endpoint": f"/{path}",
             "model": model,
             "token_name": token_display,
@@ -496,7 +523,6 @@ async def catch_all(path: str, request: Request):
         headers[k] = v
 
     # 设置正确的 Host
-    from urllib.parse import urlparse
     parsed = urlparse(config.NEWAPI_URL)
     headers["host"] = parsed.netloc
 

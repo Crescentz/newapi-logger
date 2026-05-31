@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS api_chat_logs (
 
     -- 请求标识
     request_id      VARCHAR(128)    COMMENT 'API 返回的 id（如 chatcmpl-xxx）',
+    session_id      VARCHAR(64)     COMMENT '会话 ID（多轮对话关联，X-Conversation-ID 或自动生成）',
     endpoint        VARCHAR(256)    NOT NULL COMMENT '请求端点路径',
     model           VARCHAR(128)    COMMENT '模型名称',
 
@@ -59,6 +60,7 @@ CREATE TABLE IF NOT EXISTS api_chat_logs (
     INDEX idx_token (token_name),
     INDEX idx_token_full (token_full(64)),
     INDEX idx_request_id (request_id),
+    INDEX idx_session_id (session_id),
     INDEX idx_is_error (is_error),
     INDEX idx_endpoint (endpoint)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci

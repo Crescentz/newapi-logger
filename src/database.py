@@ -112,11 +112,11 @@ pool = ConnectionPool(
 
 INSERT_CHAT_SQL = """
     INSERT INTO api_chat_logs
-        (request_id, endpoint, model, token_name, token_full, client_ip, user_agent,
+        (request_id, session_id, endpoint, model, token_name, token_full, client_ip, user_agent,
          request_body, response_body, thinking_content,
          prompt_tokens, completion_tokens, total_tokens,
          status_code, is_stream, is_error, error_message, latency_ms)
-    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
 """
 
 INSERT_GENERAL_SQL = """
@@ -168,6 +168,7 @@ def _write_chat(item: dict):
     try:
         _execute_sql(conn, INSERT_CHAT_SQL, (
             item.get("request_id"),
+            item.get("session_id"),
             item.get("endpoint"),
             item.get("model"),
             item.get("token_name"),

@@ -1,0 +1,67 @@
+# ============================================================
+# newapi-logger docker-compose.yml
+# 独立编排，不影响原有服务
+#
+# 使用方法:
+#   cp deploy/.env.example deploy/.env && vi deploy/.env
+#   docker compose -f deploy/docker-compose.yml up -d
+# ============================================================
+version: "3.8"
+
+services:
+  api-logger:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    image: api-logger:latest
+    container_name: api-logger
+    restart: unless-stopped
+
+    ports:
+      - "${LISTEN_PORT:-8100}:8100"
+
+    environment:
+      - NEWAPI_URL=${NEWAPI_URL:-http://newapi:55000}
+      - MYSQL_HOST=${MYSQL_HOST:-mysql}
+      - MYSQL_PORT=${MYSQL_PORT:-3306}
+      - MYSQL_USER=${MYSQL_USER:-root}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-}
+      - MYSQL_DATABASE=${MYSQL_DATABASE:-newapi_logs}
+      - NEWAPI_DB_HOST=${NEWAPI_DB_HOST:-mysql}
+      - NEWAPI_DB_USER=${NEWAPI_DB_USER:-root}
+      - NEWAPI_DB_PASSWORD=${NEWAPI_DB_PASSWORD:-}
+      - NEWAPI_DB_NAME=${NEWAPI_DB_NAME:-newapi}
+      - TOKEN_NAME_CACHE_TTL=${TOKEN_NAME_CACHE_TTL:-300}
+      - LISTEN_HOST=0.0.0.0
+      - LISTEN_PORT=8100
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - LOG_DIR=/app/logs
+      - TOKEN_MASK=${TOKEN_MASK:-false}
+      - DB_WORKER_THREADS=${DB_WORKER_THREADS:-3}
+      - HTTP_MAX_CONNECTIONS=${HTTP_MAX_CONNECTIONS:-500}
+
+    volumes:
+      - ${LOG_HOST_DIR:-./logs}:/app/logs
+
+    networks:
+      - ${DOCKER_NETWORK:-newapi-net}
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "3"
+
+    deploy:
+      resources:
+        limits:
+          cpus: "4"
+          memory: "4G"
+        reservations:
+          cpus: "1"
+          memory: "1G"
+
+networks:
+  newapi-net:
+    name: ${DOCKER_NETWORK:-newapi-net}
+    external: true
