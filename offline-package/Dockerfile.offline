@@ -2,24 +2,24 @@
 # newapi-logger Dockerfile（离线版）
 # 使用本地预下载的 Linux wheels 重建镜像，无需网络
 #
-# 构建上下文: 项目根目录
 # 使用方法:
-#   docker build -t api-logger:latest -f deploy/Dockerfile.offline .
+#   1. 确保 wheels-linux/ 目录在构建上下文中
+#   2. docker build -t api-logger:latest -f Dockerfile.offline .
 # ============================================================
 FROM python:3.11-slim
 
 WORKDIR /app
 
-# 复制离线依赖包 (wheels 目录在 offline-package/wheels/)
-COPY offline-package/wheels/ /wheels/
-COPY src/requirements.txt .
+# 复制离线依赖包
+COPY wheels-linux/ /wheels/
+COPY requirements.txt .
 
 # 离线安装（不从 PyPI 下载）
 RUN pip install --no-cache-dir --no-index --find-links=/wheels -r requirements.txt \
     && rm -rf /wheels
 
 # 复制源代码
-COPY src/*.py /app/
+COPY *.py /app/
 
 # 创建日志目录
 RUN mkdir -p /app/logs

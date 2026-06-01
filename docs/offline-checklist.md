@@ -69,7 +69,7 @@ docker compose up -d        # 启动
 docker compose down         # 停止（不影响原服务）
 docker compose restart      # 重启
 docker compose logs -f      # 日志
-curl localhost:8100/health  # 健康
+curl localhost:55020/health  # 健康检查
 
 tail -f api-logger/logs/full.log    # 完整日志
 tail -f api-logger/logs/error.log   # 错误日志

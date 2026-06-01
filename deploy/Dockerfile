@@ -19,4 +19,4 @@ RUN mkdir -p /app/logs
 
 EXPOSE 55020
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "55020", "--log-level", "info", "--limit-concurrency", "1000"]
+CMD ["sh", "-c", "uvicorn main:app --host ${LISTEN_HOST:-0.0.0.0} --port ${LISTEN_PORT:-55020} --log-level ${LOG_LEVEL:-info} --limit-concurrency 1000"]

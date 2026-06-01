@@ -1,60 +1,59 @@
 # ============================================================
-# newapi-logger docker-compose.yml
-# 独立编排，不影响原有服务
-#
-# 使用方法:
-#   cp deploy/.env.example deploy/.env && vi deploy/.env
-#   docker compose -f deploy/docker-compose.yml up -d
+# newapi-logger 离线部署 docker-compose.yml
+# 无需网络，直接 docker compose up -d 即可运行
 #
 # ═══════════════════════════════════════════════════════════
-#  可修改端口说明（修改 deploy/.env 对应变量后重启即可）:
-# ═══════════════════════════════════════════════════════════
-#  宿主机端口 (PORTS 左侧)    →  容器内端口 (右侧)
-#  LISTEN_PORT:55020           →  55020   (api-logger 监听端口)
+#  前置条件:
+#   1. 已导入 Docker 镜像: docker load -i python-3.11-slim.tar
+#                          docker load -i api-logger-v2.2.tar
+#   2. 已初始化 MySQL 数据库: mysql -u root -p < schema.sql
+#   3. 已配置 .env 文件: cp .env.example .env && vi .env
 #
 # ═══════════════════════════════════════════════════════════
-#  可修改挂载路径说明 (修改 deploy/.env 对应变量后重启):
+#  可修改的端口 (在 .env 中修改, 然后 docker compose restart):
 # ═══════════════════════════════════════════════════════════
-#  LOG_HOST_DIR   →  /app/logs            (api-logger 日志文件)
-#  NEWAPI_DATA_DIR → /newapi-data:ro      (newapi SQLite 令牌库, 只读)
+#  LISTEN_PORT        → api-logger 宿主机端口 (默认 55020)
+#  MYSQL_PORT         → MySQL 容器内端口 (默认 3306)
+#  NEWAPI_PORT        → newapi 端口 (默认 55000)
+#
+# ═══════════════════════════════════════════════════════════
+#  可修改的挂载路径 (在 .env 中修改):
+# ═══════════════════════════════════════════════════════════
+#  LOG_HOST_DIR       → 日志文件存放路径 (默认 ./logs)
+#  NEWAPI_DATA_DIR    → newapi data 目录路径 (默认 /opt/newapi/data)
 # ============================================================
 version: "3.8"
 
 services:
   api-logger:
-    build:
-      context: ..
-      dockerfile: deploy/Dockerfile
     image: api-logger:latest
     container_name: api-logger
     restart: unless-stopped
 
-    # ---- 端口映射 ----
-    # 修改宿主机端口: 改 .env 中 LISTEN_PORT 即可
-    # 例如想用 18080: 在 .env 设置 LISTEN_PORT=18080
+    # ---- 端口 ----
+    # 修改: .env 中改 LISTEN_PORT
+    # 同时需同步修改 Nginx upstream 中的 server api-logger:端口
     ports:
       - "${LISTEN_PORT:-55020}:${LISTEN_PORT:-55020}"
 
-    # ---- 环境变量 ----
-    # 所有配置均可通过 .env 文件覆盖，说明见 .env.example
     environment:
-      # --- newapi 后端 (如果 newapi 不在同一网络需改) ---
+      # --- newapi 后端 ---
       - NEWAPI_URL=${NEWAPI_URL:-http://newapi:55000}
       - NEWAPI_HOST=${NEWAPI_HOST:-newapi}
       - NEWAPI_PORT=${NEWAPI_PORT:-55000}
 
-      # --- 本服务监听 ---
+      # --- 本服务监听 (修改后需同步改 ports 和 Nginx) ---
       - LISTEN_HOST=${LISTEN_HOST:-0.0.0.0}
       - LISTEN_PORT=${LISTEN_PORT:-55020}
 
-      # --- MySQL 连接 (必改: MYSQL_PASSWORD) ---
+      # --- MySQL 连接 (必须修改 MYSQL_PASSWORD) ---
       - MYSQL_HOST=${MYSQL_HOST:-mysql}
       - MYSQL_PORT=${MYSQL_PORT:-3306}
       - MYSQL_USER=${MYSQL_USER:-root}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD:-}
       - MYSQL_DATABASE=${MYSQL_DATABASE:-newapi_logs}
 
-      # --- newapi SQLite 令牌名称解析 (可选但强烈建议) ---
+      # --- newapi SQLite 令牌解析 (可选) ---
       - NEWAPI_SQLITE_PATH=${NEWAPI_SQLITE_PATH:-/newapi-data/one-api.db}
       - TOKEN_NAME_CACHE_TTL=${TOKEN_NAME_CACHE_TTL:-300}
 
@@ -62,7 +61,7 @@ services:
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - LOG_DIR=/app/logs
 
-      # --- 性能调优 ---
+      # --- 性能参数 ---
       - DB_WORKER_THREADS=${DB_WORKER_THREADS:-3}
       - DB_POOL_MIN_SIZE=${DB_POOL_MIN_SIZE:-2}
       - DB_POOL_MAX_SIZE=${DB_POOL_MAX_SIZE:-8}
@@ -85,31 +84,22 @@ services:
       - ERROR_LOG_MAX_MB=${ERROR_LOG_MAX_MB:-50}
       - ERROR_LOG_BACKUPS=${ERROR_LOG_BACKUPS:-10}
 
-    # ---- 挂载卷 ----
     volumes:
-      # ① 日志文件持久化 (必挂, 否则容器重启日志丢失)
-      #   修改路径: .env 中改 LOG_HOST_DIR
-      #   例如: LOG_HOST_DIR=/data/api-logger/logs
+      # ① 日志持久化 (修改: .env 中 LOG_HOST_DIR)
       - ${LOG_HOST_DIR:-./logs}:/app/logs
 
-      # ② newapi 的 data 目录 (只读, 用于读取令牌名称)
-      #   修改路径: .env 中改 NEWAPI_DATA_DIR
-      #   例如: NEWAPI_DATA_DIR=/opt/newapi/data
-      #   不挂载也能运行，token_name 将显示脱敏密钥
+      # ② newapi SQLite 只读挂载 (修改: .env 中 NEWAPI_DATA_DIR)
       - ${NEWAPI_DATA_DIR:-/opt/newapi/data}:/newapi-data:ro
 
-    # ---- Docker 网络 ----
     networks:
       - ${DOCKER_NETWORK:-newapi-net}
 
-    # ---- Docker 日志轮转 ----
     logging:
       driver: "json-file"
       options:
         max-size: "200m"
         max-file: "5"
 
-    # ---- 资源限制 (根据服务器配置调整) ----
     deploy:
       resources:
         limits:
